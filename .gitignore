@@ -1,0 +1,20 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+/app/build
+/app/release
+
+# Keystores (never commit real signing secrets)
+*.jks
+*.keystore
+!debug.keystore
+
+# GraphHopper / OSM routing data (downloaded at first launch, not checked in)
+/routing-data/
+*.osm.pbf
