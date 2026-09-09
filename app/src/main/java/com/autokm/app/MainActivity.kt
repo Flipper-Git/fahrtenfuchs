@@ -40,7 +40,7 @@ fun PlaceholderScreen(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "AutoKm",
+            text = "Fahrtenfuchs",
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(

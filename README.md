@@ -1,4 +1,4 @@
-# AutoKm
+# Fahrtenfuchs
 
 Private App zur Abrechnung gefahrener Kilometer (0.30 CHF/km, abzüglich Tankkosten, monatliche Abrechnung als xlsx-Export).
 
@@ -16,7 +16,7 @@ Lokal (benötigt JDK 17):
 
 Die APK entsteht unter `app/build/outputs/apk/debug/app-debug.apk`.
 
-Über GitHub Actions wird bei jedem Push auf `main` automatisch eine Debug-APK gebaut und als Workflow-Artefakt bereitgestellt (Tab "Actions" → letzter Lauf → "autokm-debug-apk").
+Über GitHub Actions wird bei jedem Push auf `main` automatisch eine Debug-APK gebaut und als Workflow-Artefakt bereitgestellt (Tab "Actions" → letzter Lauf → "fahrtenfuchs-debug-apk").
 
 ## Installation auf dem Smartphone (GrapheneOS)
 
