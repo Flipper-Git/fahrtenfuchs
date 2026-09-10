@@ -8,19 +8,27 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.autokm.app.data.AppDatabase
 import com.autokm.app.data.settings.SettingsRepository
+import com.autokm.app.routing.RoutingRepository
+import com.autokm.app.routing.RoutingStatus
 import com.autokm.app.ui.theme.AutoKmTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +37,7 @@ class MainActivity : ComponentActivity() {
 
         val database = AppDatabase.get(applicationContext)
         val settingsRepository = SettingsRepository(applicationContext)
+        val routingRepository = RoutingRepository(applicationContext)
 
         setContent {
             AutoKmTheme {
@@ -36,6 +45,7 @@ class MainActivity : ComponentActivity() {
                     DatenschichtCheckScreen(
                         database = database,
                         settingsRepository = settingsRepository,
+                        routingRepository = routingRepository,
                         modifier = Modifier.padding(padding),
                     )
                 }
@@ -44,10 +54,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Zürich HB <-> Bern HB, nur zum Testen der Routing-Integration (Sprint 2).
+private const val TEST_VON_LAT = 47.3779
+private const val TEST_VON_LON = 8.5403
+private const val TEST_NACH_LAT = 46.9489
+private const val TEST_NACH_LON = 7.4405
+
 @Composable
 fun DatenschichtCheckScreen(
     database: AppDatabase,
     settingsRepository: SettingsRepository,
+    routingRepository: RoutingRepository,
     modifier: Modifier = Modifier,
 ) {
     val offeneSummeKm by database.fahrtDao().offeneSummeKm().collectAsState(initial = 0.0)
@@ -55,6 +72,9 @@ fun DatenschichtCheckScreen(
         initial = SettingsRepository.STANDARD_TARIF_CHF_PRO_KM,
     )
     val anzahlOrte by database.ortDao().anzahlFlow().collectAsState(initial = 0)
+    val scope = rememberCoroutineScope()
+    var routingStatus by remember { mutableStateOf<RoutingStatus>(RoutingStatus.NichtGeladen) }
+    var testDistanzKm by remember { mutableStateOf<Double?>(null) }
 
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
@@ -77,6 +97,28 @@ fun DatenschichtCheckScreen(
             text = "Orte in Datenbank: $anzahlOrte",
             style = MaterialTheme.typography.bodySmall,
         )
+
+        Button(onClick = {
+            scope.launch {
+                routingRepository.sicherstellen { status -> routingStatus = status }
+                testDistanzKm = routingRepository.distanzKm(
+                    TEST_VON_LAT, TEST_VON_LON, TEST_NACH_LAT, TEST_NACH_LON,
+                )
+            }
+        }) {
+            Text("Testroute Zürich–Bern berechnen")
+        }
+
+        val statusText = when (val status = routingStatus) {
+            is RoutingStatus.NichtGeladen -> "Routing-Graph noch nicht geladen"
+            is RoutingStatus.WirdHeruntergeladen -> "Lädt Routing-Graph: ${status.fortschrittProzent}%"
+            is RoutingStatus.Bereit -> "Routing-Graph bereit"
+            is RoutingStatus.Fehler -> "Fehler: ${status.nachricht}"
+        }
+        Text(text = statusText, style = MaterialTheme.typography.bodySmall)
+        testDistanzKm?.let {
+            Text(text = "Testdistanz: %.1f km".format(it), style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
