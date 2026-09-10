@@ -24,7 +24,7 @@ jobs:
           cat > DumpProfile.java << 'EOF'
           import com.graphhopper.GraphHopper;
           import com.graphhopper.config.Profile;
-          import com.graphhopper.util.Jackson;
+          import com.graphhopper.jackson.Jackson;
           import com.graphhopper.util.JsonFeatureCollection;
           import com.fasterxml.jackson.databind.ObjectMapper;
           import java.util.List;
