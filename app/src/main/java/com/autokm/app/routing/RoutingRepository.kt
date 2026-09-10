@@ -112,6 +112,10 @@ class RoutingRepository(private val context: Context) {
         neuerHopper.setProfiles(
             Profile(AndroidGraphHopper.CAR_PROFILE)
                 .setWeighting("custom")
+                // Muss dem Hint-Inhalt/-Reihenfolge des Build-Profils entsprechen (siehe
+                // routing-build/config.yml "custom_model_files: [car.json]"), sonst weicht
+                // Profile.getVersion() vom im Graphen gespeicherten Hash ab ("Profiles do not match").
+                .putHint("custom_model_files", listOf("car.json"))
                 .setCustomModel(AndroidGraphHopper.buildCarCustomModel())
         )
         neuerHopper.getCHPreparationHandler().setCHProfiles(CHProfile(AndroidGraphHopper.CAR_PROFILE))
