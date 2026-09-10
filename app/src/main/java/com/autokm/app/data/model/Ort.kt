@@ -18,6 +18,11 @@ data class Ort(
     val lat: Double,
     val lon: Double,
 ) {
+    // Manche amtlichen Namen enthalten bereits das Kantonskürzel (z.B. "Buchs AG"),
+    // um bei gleichnamigen Ortschaften eindeutig zu sein - das nicht doppelt anzeigen.
     val anzeigeName: String
-        get() = "$name ($plz, $kanton)"
+        get() {
+            val basisName = name.removeSuffix(" $kanton")
+            return "$basisName ($plz, $kanton)"
+        }
 }

@@ -15,6 +15,9 @@ interface OrtDao {
     @Query("SELECT COUNT(*) FROM orte")
     suspend fun anzahl(): Int
 
+    @Query("SELECT COUNT(*) FROM orte")
+    fun anzahlFlow(): Flow<Int>
+
     @Query(
         "SELECT * FROM orte WHERE name LIKE '%' || :suchtext || '%' " +
             "ORDER BY name LIMIT 50"

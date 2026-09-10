@@ -54,6 +54,7 @@ fun DatenschichtCheckScreen(
     val tarif by settingsRepository.tarifChfProKm.collectAsState(
         initial = SettingsRepository.STANDARD_TARIF_CHF_PRO_KM,
     )
+    val anzahlOrte by database.ortDao().anzahlFlow().collectAsState(initial = 0)
 
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
@@ -65,11 +66,15 @@ fun DatenschichtCheckScreen(
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
-            text = "Sprint 1 – Datenmodell steht.",
+            text = "Sprint 2 – Ortsdaten geladen.",
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
             text = "Offene km: $offeneSummeKm · Tarif: $tarif CHF/km",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            text = "Orte in Datenbank: $anzahlOrte",
             style = MaterialTheme.typography.bodySmall,
         )
     }
@@ -85,7 +90,7 @@ fun DatenschichtCheckPreview() {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(text = "Fahrtenfuchs", style = MaterialTheme.typography.headlineMedium)
-            Text(text = "Sprint 1 – Datenmodell steht.", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Sprint 2 – Ortsdaten geladen.", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
