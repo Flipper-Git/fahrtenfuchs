@@ -2,8 +2,10 @@ package com.autokm.app.routing
 
 import android.content.Context
 import com.graphhopper.GHRequest
+import com.graphhopper.GraphHopper
 import com.graphhopper.config.CHProfile
 import com.graphhopper.config.Profile
+import com.graphhopper.storage.DAType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -28,7 +30,12 @@ class RoutingRepository(private val context: Context) {
     private val graphCacheDir = File(graphParentDir, "graph-cache")
     private var hopper: AndroidGraphHopper? = null
 
-    fun istBereitLokal(): Boolean = File(graphCacheDir, "properties").exists()
+    private val formatVersionDatei = File(graphParentDir, "format-version.txt")
+
+    fun istBereitLokal(): Boolean =
+        File(graphCacheDir, "properties").exists() &&
+            formatVersionDatei.exists() &&
+            formatVersionDatei.readText().trim() == GRAPH_FORMAT_VERSION.toString()
 
     suspend fun sicherstellen(onFortschritt: (RoutingStatus) -> Unit) {
         withContext(Dispatchers.IO) {
@@ -51,6 +58,7 @@ class RoutingRepository(private val context: Context) {
     }
 
     private fun herunterladenUndEntpacken(onFortschritt: (RoutingStatus) -> Unit) {
+        graphParentDir.deleteRecursively()
         graphParentDir.mkdirs()
         val zipDatei = File(context.cacheDir, "graph-cache-schweiz.zip")
         val connection = URL(GRAPH_DOWNLOAD_URL).openConnection()
@@ -93,6 +101,7 @@ class RoutingRepository(private val context: Context) {
             }
         }
         zipDatei.delete()
+        formatVersionDatei.writeText(GRAPH_FORMAT_VERSION.toString())
     }
 
     private fun ladeGraphFallsNoetig() {
@@ -106,8 +115,22 @@ class RoutingRepository(private val context: Context) {
                 .setCustomModel(AndroidGraphHopper.buildCarCustomModel())
         )
         neuerHopper.getCHPreparationHandler().setCHProfiles(CHProfile(AndroidGraphHopper.CAR_PROFILE))
+        erzwingeMmapSpeicher(neuerHopper)
         neuerHopper.load()
         hopper = neuerHopper
+    }
+
+    /**
+     * GraphHopper hat keinen öffentlichen Setter für DAType.MMAP (nur für RAM/RAM_STORE über
+     * setStoreOnFlush). RAM_STORE nutzt eine VarHandle-Methode, die auf Android nicht existiert
+     * (NoSuchMethodError in RAMDataAccess.<clinit>), MMAP dagegen nur Standard-ByteBuffer - daher
+     * hier direkt das private Feld setzen. Der Graph wurde entsprechend auch mit
+     * graph.dataaccess.default_type: MMAP gebaut, siehe routing-build/config.yml.
+     */
+    private fun erzwingeMmapSpeicher(hopper: GraphHopper) {
+        val feld = GraphHopper::class.java.getDeclaredField("dataAccessDefaultType")
+        feld.isAccessible = true
+        feld.set(hopper, DAType.MMAP)
     }
 
     /** Liefert die Straßendistanz in km, oder null wenn keine Route gefunden wurde. */
@@ -122,5 +145,9 @@ class RoutingRepository(private val context: Context) {
     companion object {
         private const val GRAPH_DOWNLOAD_URL =
             "https://github.com/Flipper-Git/fahrtenfuchs/releases/download/routing-data-ch/graph-cache-schweiz.zip"
+
+        /** Hochzählen, wenn sich das Graph-Format ändert (z.B. anderer dataaccess.default_type),
+         * damit bereits heruntergeladene, inkompatible lokale Graphen automatisch neu geladen werden. */
+        private const val GRAPH_FORMAT_VERSION = 2
     }
 }
