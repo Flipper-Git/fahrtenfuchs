@@ -37,7 +37,10 @@ jobs:
 
       - name: Import (build routing graph)
         run: |
+          mkdir -p janino-generated
           java -Xmx12g \
+            -Dorg.codehaus.janino.source_debugging.enable=true \
+            -Dorg.codehaus.janino.source_debugging.dir=janino-generated \
             -Ddw.graphhopper.datareader.file=switzerland-latest.osm.pbf \
             -jar graphhopper-web.jar import config.yml
 
@@ -46,6 +49,12 @@ jobs:
           ls -la graph-cache
           du -sh graph-cache
           zip -r -q graph-cache-schweiz.zip graph-cache
+
+      - name: Upload generated Janino weighting source
+        uses: actions/upload-artifact@v7
+        with:
+          name: janino-generated
+          path: janino-generated
 
       - name: Publish/update routing-data release
         env:
