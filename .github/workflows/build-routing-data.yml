@@ -33,7 +33,7 @@ jobs:
         run: curl -fsSL -o switzerland-latest.osm.pbf "https://download.geofabrik.de/europe/switzerland-latest.osm.pbf"
 
       - name: Copy build config
-        run: cp routing-build/config.yml routing-build/car.json .
+        run: cp routing-build/config.yml .
 
       - name: Import (build routing graph)
         run: |
