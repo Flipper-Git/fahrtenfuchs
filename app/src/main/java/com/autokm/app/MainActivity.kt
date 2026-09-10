@@ -12,20 +12,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.autokm.app.data.AppDatabase
+import com.autokm.app.data.settings.SettingsRepository
 import com.autokm.app.ui.theme.AutoKmTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val database = AppDatabase.get(applicationContext)
+        val settingsRepository = SettingsRepository(applicationContext)
+
         setContent {
             AutoKmTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
-                    PlaceholderScreen(modifier = Modifier.padding(padding))
+                    DatenschichtCheckScreen(
+                        database = database,
+                        settingsRepository = settingsRepository,
+                        modifier = Modifier.padding(padding),
+                    )
                 }
             }
         }
@@ -33,7 +45,16 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun PlaceholderScreen(modifier: Modifier = Modifier) {
+fun DatenschichtCheckScreen(
+    database: AppDatabase,
+    settingsRepository: SettingsRepository,
+    modifier: Modifier = Modifier,
+) {
+    val offeneSummeKm by database.fahrtDao().offeneSummeKm().collectAsState(initial = 0.0)
+    val tarif by settingsRepository.tarifChfProKm.collectAsState(
+        initial = SettingsRepository.STANDARD_TARIF_CHF_PRO_KM,
+    )
+
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -44,16 +65,27 @@ fun PlaceholderScreen(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
-            text = "Sprint 0 – Grundgerüst steht.",
+            text = "Sprint 1 – Datenmodell steht.",
             style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = "Offene km: $offeneSummeKm · Tarif: $tarif CHF/km",
+            style = MaterialTheme.typography.bodySmall,
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun PlaceholderPreview() {
+fun DatenschichtCheckPreview() {
     AutoKmTheme {
-        PlaceholderScreen()
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(text = "Fahrtenfuchs", style = MaterialTheme.typography.headlineMedium)
+            Text(text = "Sprint 1 – Datenmodell steht.", style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
