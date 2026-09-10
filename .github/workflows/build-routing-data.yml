@@ -60,8 +60,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete routing-data-ch --yes --cleanup-tag || true
-          gh release create routing-data-ch graph-cache-schweiz.zip \
-            --title "Offline-Routing-Graph Schweiz (GraphHopper)" \
-            --notes "Automatisch gebaut aus switzerland-latest.osm.pbf, Commit ${{ github.sha }}." \
-            --target "${{ github.sha }}"
+          if gh release view routing-data-ch >/dev/null 2>&1; then
+            gh release upload routing-data-ch graph-cache-schweiz.zip --clobber
+            gh release edit routing-data-ch --notes "Automatisch gebaut aus switzerland-latest.osm.pbf, Commit ${{ github.sha }}." --target "${{ github.sha }}"
+          else
+            gh release create routing-data-ch graph-cache-schweiz.zip \
+              --title "Offline-Routing-Graph Schweiz (GraphHopper)" \
+              --notes "Automatisch gebaut aus switzerland-latest.osm.pbf, Commit ${{ github.sha }}." \
+              --target "${{ github.sha }}"
+          fi
