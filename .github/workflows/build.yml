@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,3 +34,14 @@ jobs:
         with:
           name: fahrtenfuchs-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish/update "dev" release with APK
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete dev --yes --cleanup-tag || true
+          gh release create dev app/build/outputs/apk/debug/app-debug.apk \
+            --title "Laufender Debug-Build (main)" \
+            --notes "Automatischer Build von Commit ${{ github.sha }}" \
+            --target "${{ github.sha }}"
