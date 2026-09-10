@@ -5,6 +5,7 @@ import com.graphhopper.GHRequest
 import com.graphhopper.GraphHopper
 import com.graphhopper.config.CHProfile
 import com.graphhopper.config.Profile
+import com.graphhopper.jackson.Jackson
 import com.graphhopper.storage.DAType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -109,19 +110,28 @@ class RoutingRepository(private val context: Context) {
         val neuerHopper = AndroidGraphHopper()
         neuerHopper.setGraphHopperLocation(graphCacheDir.absolutePath)
         neuerHopper.setEncodedValuesString("car_access, car_average_speed, road_access")
-        neuerHopper.setProfiles(
-            Profile(AndroidGraphHopper.CAR_PROFILE)
-                .setWeighting("custom")
-                // Muss dem Hint-Inhalt/-Reihenfolge des Build-Profils entsprechen (siehe
-                // routing-build/config.yml "custom_model_files: [car.json]"), sonst weicht
-                // Profile.getVersion() vom im Graphen gespeicherten Hash ab ("Profiles do not match").
-                .putHint("custom_model_files", listOf("car.json"))
-                .setCustomModel(AndroidGraphHopper.buildCarCustomModel())
-        )
+        neuerHopper.setProfiles(bauePassendesCarProfile())
         neuerHopper.getCHPreparationHandler().setCHProfiles(CHProfile(AndroidGraphHopper.CAR_PROFILE))
         erzwingeMmapSpeicher(neuerHopper)
         neuerHopper.load()
         hopper = neuerHopper
+    }
+
+    /**
+     * GraphHopper validiert beim Laden Profile.getVersion() gegen den im Graphen gespeicherten
+     * Hash - der hängt auch von der Einfüge-Reihenfolge der Profil-Hints ab (LinkedHashMap).
+     * new Profile(name) setzt intern schon ein leeres custom_model als ERSTEN Hint, ein späteres
+     * putHint("custom_model_files", ...) landet dadurch immer an zweiter statt erster Stelle -
+     * egal in welcher Reihenfolge man die Setter aufruft. Der Import baut das Profil aus YAML
+     * über Jackson (privater No-Arg-Konstruktor, kein Default-Hint), deshalb hier genauso: erst
+     * per Jackson nur mit custom_model_files deserialisieren, dann custom_model nachträglich
+     * setzen. Mit .github/workflows/debug-profile-hash.yml gegen den echten Graphen verifiziert
+     * (ergibt exakt den gespeicherten Hash 26199302).
+     */
+    private fun bauePassendesCarProfile(): Profile {
+        val roh = """{"name":"${AndroidGraphHopper.CAR_PROFILE}","custom_model_files":["car.json"]}"""
+        val profil = Jackson.newObjectMapper().readValue(roh, Profile::class.java)
+        return profil.setCustomModel(AndroidGraphHopper.buildCarCustomModel())
     }
 
     /**
