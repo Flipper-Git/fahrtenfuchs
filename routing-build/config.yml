@@ -13,7 +13,10 @@ graphhopper:
   graph.encoded_values: car_access, car_average_speed, road_access
 
   import.osm.ignored_highways: footway,construction,cycleway,path,steps
-  graph.dataaccess.default_type: RAM_STORE
+  # RAM_STORE würde auf Android abstürzen (RAMDataAccess nutzt eine VarHandle-Methode,
+  # die Androids java.lang.invoke.VarHandle nicht implementiert). MMAP nutzt nur
+  # Standard-ByteBuffer und funktioniert dort einwandfrei.
+  graph.dataaccess.default_type: MMAP
 
   prepare.min_network_size: 200
   prepare.subnetworks.threads: 1
