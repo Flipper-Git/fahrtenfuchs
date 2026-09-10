@@ -1,0 +1,45 @@
+name: Debug - dump resolved profile content/hash
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Download GraphHopper 11.0
+        run: curl -fsSL -o graphhopper-web.jar "https://github.com/graphhopper/graphhopper/releases/download/11.0/graphhopper-web-11.0.jar"
+
+      - name: Write DumpProfile.java
+        run: |
+          cat > DumpProfile.java << 'EOF'
+          import com.graphhopper.GraphHopper;
+          import com.graphhopper.config.Profile;
+          import com.graphhopper.util.JsonFeatureCollection;
+          import java.util.List;
+
+          public class DumpProfile {
+              public static void main(String[] args) throws Exception {
+                  Profile p = new Profile("car").setWeighting("custom");
+                  p.putHint("custom_model_files", List.of("car.json"));
+                  List<Profile> resolved = GraphHopper.resolveCustomModelFiles("", List.of(p), new JsonFeatureCollection());
+                  Profile rp = resolved.get(0);
+                  System.out.println("CONTENT: " + rp);
+                  System.out.println("VERSION: " + rp.getVersion());
+              }
+          }
+          EOF
+
+      - name: Compile and run
+        run: |
+          javac -cp graphhopper-web.jar DumpProfile.java
+          java -cp graphhopper-web.jar:. DumpProfile
