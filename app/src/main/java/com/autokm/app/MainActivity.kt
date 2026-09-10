@@ -7,7 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -38,6 +41,7 @@ class MainActivity : ComponentActivity() {
         val database = AppDatabase.get(applicationContext)
         val settingsRepository = SettingsRepository(applicationContext)
         val routingRepository = RoutingRepository(applicationContext)
+        val letzterAbsturz = CrashLogger.letzterAbsturz(applicationContext)
 
         setContent {
             AutoKmTheme {
@@ -46,6 +50,8 @@ class MainActivity : ComponentActivity() {
                         database = database,
                         settingsRepository = settingsRepository,
                         routingRepository = routingRepository,
+                        letzterAbsturz = letzterAbsturz,
+                        onAbsturzLoeschen = { CrashLogger.loeschen(applicationContext) },
                         modifier = Modifier.padding(padding),
                     )
                 }
@@ -66,6 +72,8 @@ fun DatenschichtCheckScreen(
     settingsRepository: SettingsRepository,
     routingRepository: RoutingRepository,
     modifier: Modifier = Modifier,
+    letzterAbsturz: String? = null,
+    onAbsturzLoeschen: () -> Unit = {},
 ) {
     val offeneSummeKm by database.fahrtDao().offeneSummeKm().collectAsState(initial = 0.0)
     val tarif by settingsRepository.tarifChfProKm.collectAsState(
@@ -75,12 +83,31 @@ fun DatenschichtCheckScreen(
     val scope = rememberCoroutineScope()
     var routingStatus by remember { mutableStateOf<RoutingStatus>(RoutingStatus.NichtGeladen) }
     var testDistanzKm by remember { mutableStateOf<Double?>(null) }
+    var absturzText by remember { mutableStateOf(letzterAbsturz) }
 
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        absturzText?.let { absturz ->
+            Text(
+                text = "Letzter Absturz:",
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = absturz,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(onClick = {
+                onAbsturzLoeschen()
+                absturzText = null
+            }) {
+                Text("Absturz-Log löschen")
+            }
+        }
+
         Text(
             text = "Fahrtenfuchs",
             style = MaterialTheme.typography.headlineMedium,
@@ -100,10 +127,14 @@ fun DatenschichtCheckScreen(
 
         Button(onClick = {
             scope.launch {
-                routingRepository.sicherstellen { status -> routingStatus = status }
-                testDistanzKm = routingRepository.distanzKm(
-                    TEST_VON_LAT, TEST_VON_LON, TEST_NACH_LAT, TEST_NACH_LON,
-                )
+                try {
+                    routingRepository.sicherstellen { status -> routingStatus = status }
+                    testDistanzKm = routingRepository.distanzKm(
+                        TEST_VON_LAT, TEST_VON_LON, TEST_NACH_LAT, TEST_NACH_LON,
+                    )
+                } catch (e: Exception) {
+                    routingStatus = RoutingStatus.Fehler(e.toString())
+                }
             }
         }) {
             Text("Testroute Zürich–Bern berechnen")

@@ -13,6 +13,7 @@ class FahrtenfuchsApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLogger.installieren(this)
         val database = AppDatabase.get(this)
         applicationScope.launch {
             OrtImporter.importiereFallsLeer(this@FahrtenfuchsApp, database.ortDao())
