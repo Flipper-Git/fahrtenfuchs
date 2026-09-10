@@ -24,17 +24,24 @@ jobs:
           cat > DumpProfile.java << 'EOF'
           import com.graphhopper.GraphHopper;
           import com.graphhopper.config.Profile;
+          import com.graphhopper.util.Jackson;
           import com.graphhopper.util.JsonFeatureCollection;
+          import com.fasterxml.jackson.databind.ObjectMapper;
           import java.util.List;
 
           public class DumpProfile {
               public static void main(String[] args) throws Exception {
-                  Profile p = new Profile("car").setWeighting("custom");
-                  p.putHint("custom_model_files", List.of("car.json"));
+                  ObjectMapper om = Jackson.newObjectMapper();
+                  // exactly mirrors what YAML parsing produces for our config.yml profile entry
+                  Profile p = om.readValue(
+                      "{\"name\":\"car\",\"custom_model_files\":[\"car.json\"]}",
+                      Profile.class);
+                  System.out.println("RAW CONTENT: " + p);
+                  System.out.println("RAW VERSION: " + p.getVersion());
                   List<Profile> resolved = GraphHopper.resolveCustomModelFiles("", List.of(p), new JsonFeatureCollection());
                   Profile rp = resolved.get(0);
-                  System.out.println("CONTENT: " + rp);
-                  System.out.println("VERSION: " + rp.getVersion());
+                  System.out.println("RESOLVED CONTENT: " + rp);
+                  System.out.println("RESOLVED VERSION: " + rp.getVersion());
               }
           }
           EOF
